@@ -121,7 +121,7 @@ newDF$date.time <- NULL
 newDF$date.time <- paste(newDF$Date, newDF$Time)
 
 
-## date and time settings  and convertion -> is it really necessary ???
+## date and time settings / convertion 
 
 newDF$date.time <- as.POSIXct(newDF$date.time, 
                               tz = "Europe/Paris", 
