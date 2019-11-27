@@ -269,7 +269,7 @@ smart_tidy$Meter <- factor(smart_tidy$Meter)
 
 # plot with only the winter months
 
-newDF %>% 
+smart_meters %>% 
   group_by(month) %>% 
   summarise(sum_laundry = sum(laundry)) %>% 
   filter(month == c(1,2,12))  %>% 
@@ -314,10 +314,13 @@ plot_ly(weekday.winter,
         name = "Laundry", type = 'scatter', mode = 'lines') %>%
   add_trace(y = ~weekday.winter$kitchen, 
             name = "Kitchen", mode = 'lines') %>%
-  add_trace(y = ~weekday.winter$heating, 
+  add_trace(y = ~weekday.winter$water_AC, 
             name = "Water-heating and AC", mode = 'lines') %>% 
   add_trace(y = ~weekday.winter$rest, 
-            name = "Remaining energy consumption", mode = 'lines')
+            name = "Remaining energy consumption", mode = 'lines') %>% 
+  layout(title = "Power Consumption January 18th 2007",
+         xaxis = list(title = "Time"),
+         yaxis = list(title = "watt-hour of active energy consumption"))
 
 
 
@@ -341,10 +344,13 @@ plot_ly(weekend.winter,
         name = "Laundry", type = 'scatter', mode = 'lines') %>%
   add_trace(y = ~weekend.winter$kitchen, 
             name = "Kitchen", mode = 'lines') %>%
-  add_trace(y = ~weekend.winter$heating, 
+  add_trace(y = ~weekend.winter$water_AC, 
             name = "Water-heating and AC", mode = 'lines') %>% 
   add_trace(y = ~weekend.winter$rest, 
-            name = "Remaining energy consumption", mode = 'lines')
+            name = "Remaining energy consumption", mode = 'lines') %>% 
+  layout(title = "Power Consumption January 20th 2008",
+  xaxis = list(title = "Time"),
+  yaxis = list(title = "watt-hour of active energy consumption"))
 
 
 ## Investigating the 15th of August 2007 (Wednesday)
@@ -367,10 +373,13 @@ plot_ly(weekday.summer,
         name = "Laundry", type = 'scatter', mode = 'lines') %>%
   add_trace(y = ~weekday.summer$kitchen, 
             name = "Kitchen", mode = 'lines') %>%
-  add_trace(y = ~weekday.summer$heating, 
+  add_trace(y = ~weekday.summer$water_AC, 
             name = "Water-heating and AC", mode = 'lines') %>% 
   add_trace(y = ~weekday.summer$rest, 
-            name = "Remaining energy consumption", mode = 'lines')
+            name = "Remaining energy consumption", mode = 'lines') %>% 
+  layout(title = "Power Consumption August 15th 2007",
+         xaxis = list(title = "Time"),
+         yaxis = list(title = "watt-hour of active energy consumption"))
 
 
 ## Investigating the 18th of August 2007 (Saturday)
@@ -393,10 +402,13 @@ plot_ly(weekend.summer,
         name = "Laundry", type = 'scatter', mode = 'bar') %>%
   add_trace(y = ~weekend.summer$kitchen, 
             name = "Kitchen", mode = 'bar') %>%
-  add_trace(y = ~weekend.summer$heating, 
+  add_trace(y = ~weekend.summer$water_AC, 
             name = "Water-heating and AC", mode = 'bar') %>% 
   add_trace(y = ~weekend.summer$rest, 
-            name = "Remaining energy consumption", mode = 'bar')
+            name = "Remaining energy consumption", mode = 'bar') %>% 
+  layout(title = "Power Consumption August 18th 2007",
+         xaxis = list(title = "Time"),
+         yaxis = list(title = "watt-hour of active energy consumption"))
 
 
 ## Investigating KW 4 in 2007 (22.-28. January 2007)
@@ -417,7 +429,7 @@ plot_ly(kw4_07,
         name = "Laundry", type = 'scatter', mode = 'bar') %>%
   add_trace(y = ~kw4_07$kitchen, 
             name = "Kitchen", mode = 'bar') %>%
-  add_trace(y = ~kw4_07$heating, 
+  add_trace(y = ~kw4_07$water_AC, 
             name = "Water-heating and AC", mode = 'bar') %>% 
   add_trace(y = ~kw4_07$rest, 
             name = "Remaining energy consumption", mode = 'bar')
@@ -461,7 +473,7 @@ plot_ly(july_07,
         name = "Laundry", type = 'scatter', mode = 'bar') %>%
   add_trace(y = ~july_07$kitchen, 
             name = "Kitchen", mode = 'bar') %>%
-  add_trace(y = ~july_07$heating, 
+  add_trace(y = ~july_07$water_AC, 
             name = "Water-heating and AC", mode = 'bar')
 
 
@@ -483,7 +495,7 @@ ggplot( smart_tidy %>%
           summarise(mean_watt = mean(Watt_hr))) +
   geom_bar(aes(Meter,mean_watt), 
            stat = "identity",
-           fill = "lightgreen")
+           fill = "lightblue")
 
 
 ## year proportional
@@ -497,12 +509,12 @@ ggplot(f) +
             group=f$Meter,
             stat='identity') +
   labs(x='Year', y='Proportion of Energy Usage') +
-  ggtitle('Proportion of Total Yearly Energy Consumption') +
+  ggtitle('Proportion of Total Yearly Energy Consumption')
  
 
 
 
-f 
+
 ## mean watt per hour
 
 ggplot( smart_tidy %>% 
@@ -513,3 +525,4 @@ ggplot( smart_tidy %>%
     geom_bar(aes(hour,mean_watt), 
              stat = "identity",
              fill = "lightgreen")
+
