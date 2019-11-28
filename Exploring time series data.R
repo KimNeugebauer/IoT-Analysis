@@ -12,6 +12,7 @@ library(tidyverse)
 library(arules)
 
 
+
 con = dbConnect(
   MySQL(),
   user = 'deepAnalytics',

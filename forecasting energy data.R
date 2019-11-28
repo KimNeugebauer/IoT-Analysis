@@ -10,6 +10,8 @@ library(lubridate)
 library(plotly)
 library(tidyverse)
 library(arules)
+library(TTR)
+library(forecast)
 
 
 
@@ -166,17 +168,87 @@ march_07_new$perc.kitchen+march_07_new$perc.laundry+march_07_new$perc.water_AC+m
 
 
 ggplot(smart_tidy %>% 
-         filter(year == 2007 & month == 3), 
-            aes(hour, Watt_hr)) + 
-            geom_col(aes(fill = Meter))
+        filter(year == 2007 & month == 3), 
+         aes(hour, Watt_hr)) + 
+          geom_col(aes(fill = Meter)) +
+          ggtitle("Summed up Watt hour consumption per hour in March 2007")
 
 
 
+ggplot(march_07_new, 
+      aes(hour, (perc.water_AC+perc.kitchen+perc.laundry+perc.rest))) + 
+        geom_col(aes(fill = perc.rest)) +
+        ggtitle("Share of remaining energy consumption compared to the Meters                 - per hour in March 2007")
 
 
 
+## time series analysis
+
+## Aggregating to weekly data, taking mean of kW per minute
+
+smart_meters_ts <- smart_meters %>% 
+  select(year, week, kw_per_min) %>% 
+  group_by(year,week) %>% 
+  summarise(mean_kwmin = mean(kw_per_min))
+
+
+smart_meters_ts <-
+  ts(smart_meters_ts$mean_kwmin,
+     frequency = 52,
+     start = c(2007, 1))
+
+plot.ts(smart_meters_ts)
+
+
+## Aggregating to weekly data, taking mean of kitchen
+
+smart_meters_kitchen <- smart_meters %>% 
+  select(year, week, kitchen) %>% 
+  group_by(year,week) %>% 
+  summarise(mean_kitchen = mean(kitchen))
+
+
+smart_meters_kitchen <-
+  ts(smart_meters_kitchen$mean_kitchen,
+     frequency = 52,
+     start = c(2007, 1))
+
+plot.ts(smart_meters_kitchen)
+
+
+## simple moving average for kW per minute
+
+SMA_smart_meters_ts <- SMA(smart_meters_ts, n = 3)
+
+plot.ts(SMA_smart_meters_ts)
 
 
 
+## decomposing the weekly time series for kW per minute
+
+dec_smart_meters_ts <- decompose(smart_meters_ts)
+
+plot(dec_smart_meters_ts)
 
 
+
+## forecasting energy consumption using Holt Winters...
+
+forecast_energycons <- HoltWinters(smart_meters_ts, 
+                                   beta = FALSE,
+                                   gamma = FALSE)
+
+forecast_energycons
+plot(forecast_energycons)
+
+forecast_energycons$SSE
+forecast_energycons$fitted
+
+## ... for 52 weeks more (so for one year more, which is 2010)
+
+forecast_energycons_HW <- forecast(forecast_energycons,
+                                               h = 52)
+forecast_energycons_HW
+
+plot(forecast_energycons_HW)
+plot.forecast(forecast_energycons_HW)
