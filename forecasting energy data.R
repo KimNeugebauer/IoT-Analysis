@@ -90,7 +90,7 @@ newDF$date.time <- as.POSIXct(newDF$date.time,
 
 newDF$year <- year(newDF$date.time)
 newDF$month <- month(newDF$date.time)
-newDF$week <- week(newDF$date.time)
+newDF$week <- isoweek(newDF$date.time)
 newDF$day <- day(newDF$date.time)
 newDF$hour <- hour(newDF$date.time)
 
@@ -184,18 +184,37 @@ ggplot(march_07_new,
 
 ## time series analysis
 
-## Aggregating to weekly data, taking mean of kW per minute
+# Aggregating by week without falling into the trap of counting the same
+# week twice because it gets cut by the end of the year you know what I mean
 
+
+# create day of the year column
+smart_meters$day_of_year <-strftime(smart_meters$date.time, format = "%j")
+
+# group by day of the year and year
 smart_meters_ts <- smart_meters %>% 
-  select(year, week, kw_per_min) %>% 
-  group_by(year,week) %>% 
+  select(year, day_of_year, kw_per_min) %>% 
+  group_by(year, day_of_year) %>%
   summarise(mean_kwmin = mean(kw_per_min))
 
 
+# create unique id for every week
+my_weeks <- rep(1:1000, each = 7, length.out = nrow(smart_meters_ts))
+smart_meters_ts$my_weeks <- my_weeks
+
+# group by week id in order not to cut weeks at the end of the year
+smart_meters_ts <- smart_meters_ts %>% 
+  group_by(my_weeks) %>% 
+  summarise(mean_kwmin = mean(mean_kwmin))
+
+
+## creating the time series
+
 smart_meters_ts <-
   ts(smart_meters_ts$mean_kwmin,
-     frequency = 52,
+     frequency = 365.25/7,
      start = c(2007, 1))
+
 
 plot.ts(smart_meters_ts)
 
@@ -236,7 +255,9 @@ plot(dec_smart_meters_ts)
 
 forecast_energycons <- HoltWinters(smart_meters_ts, 
                                    beta = FALSE,
-                                   gamma = FALSE)
+                                   gamma = FALSE,
+                                   l.start = 24.74)
+
 
 forecast_energycons
 plot(forecast_energycons)
@@ -251,4 +272,30 @@ forecast_energycons_HW <- forecast(forecast_energycons,
 forecast_energycons_HW
 
 plot(forecast_energycons_HW)
-plot.forecast(forecast_energycons_HW)
+plot.forecast(forecast_energycons_HW)  # ??? no longer visible ??
+
+
+## ACF of residuals of Holt Winters forecast
+
+acf(forecast_energycons_HW$residuals, 
+    lag.max = 10,
+    na.action = na.pass)
+
+plot(forecast_energycons_HW$residuals)
+
+
+## .. and the partial ACF likewise
+
+pacf(forecast_energycons_HW$residuals, 
+    lag.max = 10,
+    na.action = na.pass)
+
+plot.ts(forecast_energycons_HW$residuals)  # same as above or ??
+
+
+## Ljung Box Test
+
+Box.test(forecast_energycons_HW$residuals, 
+         lag = 10, 
+         type = "Ljung-Box")
+
