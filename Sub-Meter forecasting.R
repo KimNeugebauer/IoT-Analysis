@@ -1,4 +1,5 @@
-## Forecasting energy consumption
+## Analysing Sub-Meter 1, 2 and 3
+
 
 ## Loading libraries and data
 
@@ -12,6 +13,7 @@ library(tidyverse)
 library(arules)
 library(TTR)
 library(forecast)
+library(tseries)
 
 
 
@@ -137,152 +139,121 @@ smart_tidy$Meter <- factor(smart_tidy$Meter)
 ## total power usage splitted by all sub meters
 
 
-energy_per_meter <- smart_tidy %>% 
-  filter(smart_tidy$year == 2007 &
-           smart_tidy$month == 1 &
-           smart_tidy$day == 19) %>% 
-  group_by(Meter) %>% 
-  summarise(mean(Watt_hr))
-
-
-
-## percentage of use by every sub meter per hour in march 07
-
-march_07_new <- aggregate(cbind(kitchen, laundry, rest, water_AC) ~ hour, data=march_07, FUN=mean)
-
-
-march_07_new <- march_07_new %>% mutate(perc.kitchen = (kitchen/(kitchen+laundry+water_AC+rest))*100)
-
-march_07_new <- march_07_new %>% mutate(perc.laundry = (laundry/(kitchen+laundry+water_AC+rest))*100)
-
-march_07_new <- march_07_new %>% mutate(perc.water_AC = (water_AC/(kitchen+laundry+water_AC+rest))*100)
-
-march_07_new <- march_07_new %>% mutate(perc.rest = (rest/(kitchen+laundry+water_AC+rest))*100)
-
-
-## just checking percentages...
-
-march_07_new$perc.kitchen+march_07_new$perc.laundry+march_07_new$perc.water_AC+march_07_new$perc.rest
-
-
-
-
 ggplot(smart_tidy %>% 
-         filter(year == 2007 & month == 3), 
-       aes(hour, Watt_hr)) + 
-  geom_col(aes(fill = Meter)) +
-  ggtitle("Summed up Watt hour consumption per hour in March 2007 per Meter")
+         filter(year == 2007) %>% 
+         group_by(Meter) %>% 
+         summarise(mean_watthour = mean(Watt_hr)),
+       aes(Meter, mean_watthour)) + 
+  geom_col() +
+  ggtitle("Summed up Watt hour consumption per Meter in 2007")
+
+
+ggplot(smart_tidy %>%
+         filter(year == 2007 & month == 3 & Meter == "kitchen"), 
+        aes(hour, Watt_hr)) + 
+        geom_col() +
+        ggtitle("Watt hour consumption per hour in March 2007 for Kitchen")
 
 
 
-ggplot(march_07_new, 
-      aes(hour, (perc.water_AC+perc.kitchen+perc.laundry+perc.rest))) + 
-        geom_col(aes(fill = perc.rest)) +
-        ggtitle("Share of remaining energy consumption compared to the Meters                 - per hour in March 2007")
+# group by day of the year and year, summing mean of Sub-Meter 1 (kitchen)
 
-
-
-## time series analysis
-
-# Aggregating by week without falling into the trap of counting the same
-# week twice because it gets cut by the end of the year you know what I mean
-
-
-# create day of the year column
-smart_meters$day_of_year <-strftime(smart_meters$date.time, format = "%j")
-
-# group by day of the year and year
-smart_meters_ts <- smart_meters %>% 
-  select(year, day_of_year, kw_per_min) %>% 
+smart_meters_kitchen <- smart_meters %>% 
+  select(year, day_of_year, kitchen) %>% 
   group_by(year, day_of_year) %>%
-  summarise(mean_kwmin = mean(kw_per_min))
+  summarise(mean_kitchen = mean(kitchen))
 
 
 # create unique id for every week
-my_weeks <- rep(1:1000, each = 7, length.out = nrow(smart_meters_ts))
-smart_meters_ts$my_weeks <- my_weeks
+my_weeks <- rep(1:1000, each = 7, length.out = nrow(smart_meters_kitchen))
+smart_meters_kitchen$my_weeks <- my_weeks
+
 
 # group by week id in order not to cut weeks at the end of the year
-smart_meters_ts <- smart_meters_ts %>% 
+smart_meters_kitchen <- smart_meters_kitchen %>% 
   group_by(my_weeks) %>% 
-  summarise(mean_kwmin = mean(mean_kwmin))
+  summarise(mean_kitchen = mean(mean_kitchen))
 
 
-## creating the time series
+# creating the time series for kitchen sub meter
 
-smart_meters_ts <-
-  ts(smart_meters_ts$mean_kwmin,
+smart_meters_kitchen <-
+  ts(smart_meters_kitchen$mean_kitchen,
      frequency = 365.25/7,
      start = c(2007, 1))
 
-
-plot.ts(smart_meters_ts)
-
+plot.ts(smart_meters_kitchen)
 
 
-## simple moving average for kW per minute
+## decomposing the weekly time series 
 
-SMA_smart_meters_ts <- SMA(smart_meters_ts, n = 3)
+dec_smart_meters_kitchen <- decompose(smart_meters_kitchen)
 
-plot.ts(SMA_smart_meters_ts)
-
-
-
-## decomposing the weekly time series for kW per minute
-
-dec_smart_meters_ts <- decompose(smart_meters_ts)
-
-plot(dec_smart_meters_ts)
+plot(dec_smart_meters_kitchen)
 
 
 
 ## forecasting energy consumption using Holt Winters...
 
-forecast_energycons <- HoltWinters(smart_meters_ts, 
+forecast_kitchen <- HoltWinters(smart_meters_kitchen, 
                                    beta = FALSE,
                                    gamma = FALSE,
-                                   l.start = 24.74)
+                                   l.start = 2.474)
 
 
-forecast_energycons
-plot(forecast_energycons)
+forecast_kitchen
 
-forecast_energycons$SSE
-forecast_energycons$fitted
+plot(forecast_kitchen)
+
+forecast_kitchen$fitted
+
+
+## sum of sqared errors and root mean squared errors
+
+forecast_kitchen$SSE
+
+forecast_kitchen$SSE/52
+
+sqrt((forecast_kitchen$SSE/52))
+
+
 
 ## ... for 52 weeks more (so for one year more, which is 2010)
 
-forecast_energycons_HW <- forecast(forecast_energycons,
+forecast_kitchen_HW <- forecast(forecast_kitchen,
                                    h = 52,
                                    level=c(80,90))
 
-forecast_energycons_HW
+forecast_kitchen_HW
 
-plot(forecast_energycons_HW)
-plot.forecast(forecast_energycons_HW)  # ??? no longer visible ??
+plot(forecast_kitchen_HW)
+plot(forecast_kitchen_HW, start(2010))   # don´t get it..
+
+plot.forecast(forecast_kitchen_HW)  # ??? no longer visible ??
+
 
 
 ## ACF of residuals of Holt Winters forecast
 
-acf(forecast_energycons_HW$residuals, 
+acf(forecast_kitchen_HW$residuals, 
     lag.max = 10,
     na.action = na.pass)
 
-plot(forecast_energycons_HW$residuals)
+plot(forecast_kitchen_HW$residuals)
 
 
 ## .. and the partial ACF likewise
 
-pacf(forecast_energycons_HW$residuals, 
-    lag.max = 10,
-    na.action = na.pass)
+pacf(forecast_kitchen_HW$residuals, 
+     lag.max = 10,
+     na.action = na.pass)
 
-plot.ts(forecast_energycons_HW$residuals)  # same as above or ??
+plot.ts(forecast_kitchen_HW$residuals)  # what exactly is the difference to line 235 ?
 
 
 ## Ljung Box Test
 
-Box.test(forecast_energycons_HW$residuals, 
+Box.test(forecast_kitchen_HW$residuals, 
          lag = 10, 
          type = "Ljung-Box")
 
