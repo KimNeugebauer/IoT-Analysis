@@ -11,9 +11,9 @@ library(lubridate)
 library(plotly)
 library(tidyverse)
 library(arules)
-library(TTR)
 library(forecast)
 library(tseries)
+library(TSstudio)
 
 
 
@@ -159,6 +159,7 @@ ggplot(smart_tidy %>%
 # group by day of the year and year, summing mean of Sub-Meter 1 (kitchen)
 
 smart_meters_kitchen <- smart_meters %>% 
+  filter(year == 2009) %>% 
   select(year, day_of_year, kitchen) %>% 
   group_by(year, day_of_year) %>%
   summarise(mean_kitchen = mean(kitchen))
@@ -180,16 +181,17 @@ smart_meters_kitchen <- smart_meters_kitchen %>%
 smart_meters_kitchen <-
   ts(smart_meters_kitchen$mean_kitchen,
      frequency = 365.25/7,
-     start = c(2007, 1))
+     start = c(2009, 1))
 
 plot.ts(smart_meters_kitchen)
 
 
-## decomposing the weekly time series 
 
-dec_smart_meters_kitchen <- decompose(smart_meters_kitchen)
+## simple moving average for kitchen
 
-plot(dec_smart_meters_kitchen)
+SMA_smart_meters_kitchen <- SMA(smart_meters_kitchen, n = 3)
+
+plot.ts(SMA_smart_meters_kitchen)
 
 
 
@@ -228,7 +230,6 @@ forecast_kitchen_HW
 
 plot(forecast_kitchen_HW)
 plot(forecast_kitchen_HW, start(2010))   # don´t get it..
-
 plot.forecast(forecast_kitchen_HW)  # ??? no longer visible ??
 
 
@@ -248,7 +249,8 @@ pacf(forecast_kitchen_HW$residuals,
      lag.max = 10,
      na.action = na.pass)
 
-plot.ts(forecast_kitchen_HW$residuals)  # what exactly is the difference to line 235 ?
+plot.ts(forecast_kitchen_HW$residuals)  # what exactly is the difference
+                                        # to the plot in line 242 ?
 
 
 ## Ljung Box Test
@@ -256,4 +258,29 @@ plot.ts(forecast_kitchen_HW$residuals)  # what exactly is the difference to line
 Box.test(forecast_kitchen_HW$residuals, 
          lag = 10, 
          type = "Ljung-Box")
+
+
+
+## Forecasting using the TS Studio package
+
+ts_info(smart_meters_kitchen)
+
+ts_plot(smart_meters_kitchen,
+        title = "Weekly energy consumption for the kitchen",
+        Ytitle = "KW per minute",
+        Xtitle = "Time", 
+        slider = TRUE)
+
+ts_decompose(smart_meters_kitchen, type = "both")
+
+
+ts_seasonal(smart_meters_kitchen)
+ts_seasonal(smart_meters_kitchen-decompose(smart_meters_kitchen)$trend,
+            type = "all")
+
+ts_heatmap(smart_meters_kitchen)
+
+ts_acf(smart_meters_kitchen, lag.max = 52)
+
+ts_lags(smart_meters_kitchen, lags = c(1,10,25,50))
 

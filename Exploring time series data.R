@@ -357,9 +357,10 @@ plot_ly(weekend.winter,
 ## Investigating the 15th of August 2007 (Wednesday)
 
 weekday.summer <- smart_meters %>% 
-  filter(smart_meters$year == 2007 & 
-           smart_meters$month == 8 & 
-           smart_meters$day == 15)
+  filter(smart_meters$year == 2008 & 
+           smart_meters$month == 8 &
+           smart_meters$week == 35)
+           
 
 plot(weekday.summer$hour,weekday.summer$laundry)
 plot(weekday.summer$hour,weekday.winter$kitchen)

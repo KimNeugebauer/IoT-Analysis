@@ -258,7 +258,7 @@ forecast_energycons_HW <- forecast(forecast_energycons,
 
 forecast_energycons_HW
 
-plot(forecast_energycons_HW)
+plot(forecast_energycons_HW, start(2010))
 plot.forecast(forecast_energycons_HW)  # ??? no longer visible ??
 
 
