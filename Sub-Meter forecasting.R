@@ -122,7 +122,7 @@ colnames(smart_meters)[colnames(smart_meters)=="Sub_metering_4"] <-
 ## gathering the sub-meters together in one variable "Meter"
 
 smart_tidy <- smart_meters %>%
-  gather(Meter, Watt_hr,  `kitchen`,`laundry`,`heating`,`rest`)
+  gather(Meter, Watt_hr, kitchen, laundry, water_AC, rest)
 
 
 ## omitting missing values and stuff.. 
@@ -159,7 +159,7 @@ ggplot(smart_tidy %>%
 # group by day of the year and year, summing mean of Sub-Meter 1 (kitchen)
 
 smart_meters_kitchen <- smart_meters %>% 
-  filter(year == 2009) %>% 
+  filter(year == 2008) %>% 
   select(year, day_of_year, kitchen) %>% 
   group_by(year, day_of_year) %>%
   summarise(mean_kitchen = mean(kitchen))
@@ -172,7 +172,7 @@ smart_meters_kitchen$my_weeks <- my_weeks
 
 # group by week id in order not to cut weeks at the end of the year
 smart_meters_kitchen <- smart_meters_kitchen %>% 
-  group_by(my_weeks) %>% 
+  group_by(day_of_year) %>% 
   summarise(mean_kitchen = mean(mean_kitchen))
 
 
@@ -181,7 +181,7 @@ smart_meters_kitchen <- smart_meters_kitchen %>%
 smart_meters_kitchen <-
   ts(smart_meters_kitchen$mean_kitchen,
      frequency = 365.25/7,
-     start = c(2009, 1))
+     start = c(2008, 1))
 
 plot.ts(smart_meters_kitchen)
 
@@ -195,92 +195,73 @@ plot.ts(SMA_smart_meters_kitchen)
 
 
 
+smart_meters_kitchen_dec <- decompose(smart_meters_kitchen)
+plot(smart_meters_kitchen_dec)
+
+
 ## forecasting energy consumption using Holt Winters...
 
-forecast_kitchen <- HoltWinters(smart_meters_kitchen, 
+forecast_kitchen_HW <- HoltWinters(smart_meters_kitchen, 
                                    beta = FALSE,
                                    gamma = FALSE,
                                    l.start = 2.474)
 
 
-forecast_kitchen
+forecast_kitchen_HW
 
-plot(forecast_kitchen)
+plot(forecast_kitchen_HW)
 
-forecast_kitchen$fitted
+forecast_kitchen_HW$fitted
 
 
 ## sum of sqared errors and root mean squared errors
 
-forecast_kitchen$SSE
+forecast_kitchen_HW$SSE
 
-forecast_kitchen$SSE/52
+forecast_kitchen_HW$SSE/52
 
-sqrt((forecast_kitchen$SSE/52))
+sqrt((forecast_kitchen_HW$SSE/52))
 
 
 
 ## ... for 52 weeks more (so for one year more, which is 2010)
 
-forecast_kitchen_HW <- forecast(forecast_kitchen,
-                                   h = 52,
+forecast_kitchen <- forecast(smart_meters_kitchen,
+                                   h = 150,
                                    level=c(80,90))
 
-forecast_kitchen_HW
+forecast_kitchen
 
-plot(forecast_kitchen_HW)
-plot(forecast_kitchen_HW, start(2010))   # don´t get it..
-plot.forecast(forecast_kitchen_HW)  # ??? no longer visible ??
+plot(forecast_kitchen)
+plot(forecast_kitchen, start(2010))   # don´t get it..
+plot.forecast(forecast_kitchen)  # ??? no longer visible ??
 
 
 
 ## ACF of residuals of Holt Winters forecast
 
-acf(forecast_kitchen_HW$residuals, 
+acf(forecast_kitchen$residuals, 
     lag.max = 10,
     na.action = na.pass)
 
-plot(forecast_kitchen_HW$residuals)
+plot(forecast_kitchen$residuals)
 
 
 ## .. and the partial ACF likewise
 
-pacf(forecast_kitchen_HW$residuals, 
+pacf(forecast_kitchen$residuals, 
      lag.max = 10,
      na.action = na.pass)
 
-plot.ts(forecast_kitchen_HW$residuals)  # what exactly is the difference
+plot.ts(forecast_kitchen$residuals)  # what exactly is the difference
                                         # to the plot in line 242 ?
 
 
 ## Ljung Box Test
 
-Box.test(forecast_kitchen_HW$residuals, 
+Box.test(forecast_kitchen$residuals, 
          lag = 10, 
          type = "Ljung-Box")
 
 
-
-## Forecasting using the TS Studio package
-
-ts_info(smart_meters_kitchen)
-
-ts_plot(smart_meters_kitchen,
-        title = "Weekly energy consumption for the kitchen",
-        Ytitle = "KW per minute",
-        Xtitle = "Time", 
-        slider = TRUE)
-
-ts_decompose(smart_meters_kitchen, type = "both")
-
-
-ts_seasonal(smart_meters_kitchen)
-ts_seasonal(smart_meters_kitchen-decompose(smart_meters_kitchen)$trend,
-            type = "all")
-
-ts_heatmap(smart_meters_kitchen)
-
-ts_acf(smart_meters_kitchen, lag.max = 52)
-
-ts_lags(smart_meters_kitchen, lags = c(1,10,25,50))
 
