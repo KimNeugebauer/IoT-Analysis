@@ -122,6 +122,9 @@ colnames(smart_meters)[colnames(smart_meters)=="Sub_metering_4"] <-
 smart_tidy <- smart_meters %>%
   gather(Meter, Watt_hr,  `kitchen`,`laundry`,`heating`,`rest`)
 
+smart_tidy <- smart_tidy %>% 
+  mutate(kW_hr = Watt_hr/1000)
+
 
 ## omitting missing values and stuff.. 
 
@@ -166,19 +169,31 @@ march_07_new$perc.kitchen+march_07_new$perc.laundry+march_07_new$perc.water_AC+m
 
 
 
+## Plots to visualize total energy consumption of the household
 
 ggplot(smart_tidy %>% 
          filter(year == 2007 & month == 3), 
        aes(hour, Watt_hr)) + 
   geom_col(aes(fill = Meter)) +
-  ggtitle("Summed up Watt hour consumption per hour in March 2007 per Meter")
+  ggtitle("Hourly summed up Watt hour consumption in March 2007 per Meter")
 
 
 
-ggplot(march_07_new, 
-      aes(hour, (perc.water_AC+perc.kitchen+perc.laundry+perc.rest))) + 
-        geom_col(aes(fill = perc.rest)) +
-        ggtitle("Share of remaining energy consumption compared to the Meters                 - per hour in March 2007")
+## the next two plots take forever..
+
+ggplot(smart_tidy, 
+      aes(year, kW_hr)) + 
+        geom_col(aes(fill = Meter)) +
+        ggtitle("Share of total yearly energy consumption per Meter")
+
+
+
+ggplot(smart_tidy %>% 
+         filter(year == 2007), 
+       aes(month, kW_hr)) + 
+  geom_col(aes(fill = Meter)) +
+  ggtitle("Share of energy consumption in 2007 per month and Meter")
+
 
 saveRDS(smart_meters, "smart_meters.R")
 

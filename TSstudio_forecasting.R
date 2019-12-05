@@ -74,6 +74,7 @@ ts_heatmap(smart_meters_ts)
 ## ACF and lags
 
 ts_acf(smart_meters_ts, lag.max = 12)
+ts_cor(smart_meters_ts, lag.max = 12)
 
 ts_lags(smart_meters_ts, lags = c(1,5,8,12))
 
@@ -88,7 +89,7 @@ adf.test(smart_meters_ts, alternative = "stationary")
 
 ## Fitting the ARIMA Model
 
-arima_fit <- arima(train, order = c(1,1,10))
+arima_fit <- arima(smart_meters_ts, order = c(2,1,10))
 
 arima_fit
 plot(arima_fit)
@@ -101,6 +102,8 @@ tsdisplay(residuals(arima_fit), lag.max = 12)
 arima_forecast <- forecast(arima_fit, h = 12)
 
 arima_forecast
+
+plot(arima_forecast)
 plot(arima_forecast, start(2010))
 
 
