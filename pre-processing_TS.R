@@ -6,13 +6,14 @@ library(RMySQL)
 library(DBI)
 library(dplyr)
 library(ggplot2)
+library(ggthemes)
 library(lubridate)
 library(plotly)
 library(tidyverse)
-library(arules)
 library(forecast)
 library(tseries)
 library(TSstudio)
+library(scales)
 
 
 con = dbConnect(
@@ -120,7 +121,7 @@ colnames(smart_meters)[colnames(smart_meters)=="Sub_metering_4"] <-
 ## gathering the sub-meters together in one variable "Meter"
 
 smart_tidy <- smart_meters %>%
-  gather(Meter, Watt_hr,  `kitchen`,`laundry`,`heating`,`rest`)
+  gather(Meter, Watt_hr,  `kitchen`,`laundry`,`water_AC`,`rest`)
 
 smart_tidy <- smart_tidy %>% 
   mutate(kW_hr = Watt_hr/1000)
@@ -172,10 +173,12 @@ march_07_new$perc.kitchen+march_07_new$perc.laundry+march_07_new$perc.water_AC+m
 ## Plots to visualize total energy consumption of the household
 
 ggplot(smart_tidy %>% 
-         filter(year == 2007 & month == 3), 
+         filter(year == 2007 & month == 10), 
        aes(hour, Watt_hr)) + 
   geom_col(aes(fill = Meter)) +
-  ggtitle("Hourly summed up Watt hour consumption in March 2007 per Meter")
+  theme_economist() + scale_colour_economist() +
+  theme(legend.position = "bottom") +
+  ggtitle("Hourly total energy consumption in 10 / 2007 per Meter")
 
 
 
@@ -183,17 +186,29 @@ ggplot(smart_tidy %>%
 
 ggplot(smart_tidy, 
       aes(year, kW_hr)) + 
-        geom_col(aes(fill = Meter)) +
-        ggtitle("Share of total yearly energy consumption per Meter")
+      geom_col(aes(fill = Meter)) +
+      theme_economist() + scale_colour_economist() +
+      theme(legend.position = "bottom") +
+      xlab("Year") + ylab("Kilowatt per hour") +
+      ggtitle("Total yearly energy consumption devided by Meter")
 
 
 
-ggplot(smart_tidy %>% 
-         filter(year == 2007), 
+ggplot(smart_tidy %>% filter(year == 2007), 
        aes(month, kW_hr)) + 
   geom_col(aes(fill = Meter)) +
-  ggtitle("Share of energy consumption in 2007 per month and Meter")
+  theme_economist() + scale_colour_economist() +
+  theme(legend.position = "bottom") +
+  xlab("Month") + ylab("Kilowatt per hour") +
+  ggtitle("Monthly energy consumption in 2007 by Meter")
+  #scale_x_date(labels=date_format("%m"))
 
+smart_tidy$month <- sprintf("%02d", smart_tidy$month)
+
+
+
+
+## Saving the pre-processed data frame
 
 saveRDS(smart_meters, "smart_meters.R")
 

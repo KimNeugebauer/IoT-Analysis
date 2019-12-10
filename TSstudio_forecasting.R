@@ -89,10 +89,24 @@ adf.test(smart_meters_ts, alternative = "stationary")
 
 ## Fitting the ARIMA Model
 
-arima_fit <- arima(smart_meters_ts, order = c(2,1,10))
+arima_fit <- arima(train, 
+                    order = c(2,1,8),
+                    seasonal = list(order = c(1,1,0), period = 12),
+                    method = "ML",
+                    optim.method = "BFGS"
+                    )
 
 arima_fit
 plot(arima_fit)
+
+ggplot(smart_meters_ts_df,
+       aes(xmin = 0, xmax = 36)) + 
+  geom_line(aes(my_month, mean_kwmin), 
+            size = 1.2,
+            color = "darkblue") +
+  xlab("Month starting from January 2007") + 
+  ylab("Average kW per Minute") + 
+  theme_economist() + scale_colour_economist()
 
 tsdisplay(residuals(arima_fit), lag.max = 12)
 
@@ -104,13 +118,13 @@ arima_forecast <- forecast(arima_fit, h = 12)
 arima_forecast
 
 plot(arima_forecast)
-plot(arima_forecast, start(2010))
+plot(arima_forecast, start(2009))
 
 
 ## splitting the data into test and trainig
 
 smart_meters_split <- ts_split(smart_meters_ts, 
-                               sample.out = 6)
+                               sample.out = 12)
 
 train <- smart_meters_split$train
 test <- smart_meters_split$test
@@ -119,13 +133,20 @@ ts_info(train)
 ts_info(test)
 
 
+train_vector <- c(train)
+test_vector <- c(test)
+
+
 ## testing accuracy of the ARIMA Model
 
-accuracy(arima_forecast, test)
+accuracy(arima_forecast)
+accuracy(arima_forecast, test_vector)
+
 
 test_forecast(forecast.obj = arima_forecast, 
               actual = smart_meters_ts, 
-              test = test) %>% 
-  layout(legend = list(x = 36, y = 42))   ## ?????
+              test = test)
+  #layout(legend = list(x = 36, y = 42))   ## ????? 
+
 
 
